@@ -23,7 +23,9 @@ import {
   Eye, 
   Check, 
   Info,
-  Calendar
+  Calendar,
+  Share2,
+  AlertOctagon
 } from 'lucide-react';
 
 interface CaregiverViewProps {
@@ -36,6 +38,8 @@ interface CaregiverViewProps {
   alerts: CaregiverAlert[];
   language: Language;
   onAcknowledgeAlert: (alertId: string) => void;
+  onOpenShareReport?: () => void;
+  onOpenEmergencySOS?: () => void;
 }
 
 export const CaregiverView: React.FC<CaregiverViewProps> = ({
@@ -48,6 +52,8 @@ export const CaregiverView: React.FC<CaregiverViewProps> = ({
   alerts,
   language,
   onAcknowledgeAlert,
+  onOpenShareReport,
+  onOpenEmergencySOS
 }) => {
   const [filterLevel, setFilterLevel] = useState<'SMART' | 'ALL'>('SMART');
   const [whatsappSent, setWhatsappSent] = useState(false);
@@ -86,9 +92,31 @@ export const CaregiverView: React.FC<CaregiverViewProps> = ({
 
           {/* Quick Action Buttons */}
           <div className="flex items-center space-x-2">
+            {onOpenEmergencySOS && (
+              <button
+                onClick={onOpenEmergencySOS}
+                className="flex items-center space-x-1.5 py-3 px-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition active:scale-95 cursor-pointer animate-pulse"
+                title="Emergency SOS & Rule of 15 Protocol"
+              >
+                <AlertOctagon className="w-4 h-4" />
+                <span className="hidden sm:inline">Emergency SOS</span>
+              </button>
+            )}
+
+            {onOpenShareReport && (
+              <button
+                onClick={onOpenShareReport}
+                className="flex items-center space-x-1.5 py-3 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 rounded-2xl font-bold text-xs sm:text-sm shadow-md transition active:scale-95 cursor-pointer"
+                title="Share Medical Summary (WhatsApp & PDF)"
+              >
+                <Share2 className="w-4 h-4 text-teal-400" />
+                <span className="hidden sm:inline">Share Report</span>
+              </button>
+            )}
+
             <button
               onClick={handleSendWhatsApp}
-              className="flex items-center space-x-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-md transition active:scale-95"
+              className="flex items-center space-x-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-md transition active:scale-95 cursor-pointer"
             >
               <MessageCircle className="w-4 h-4" />
               <span>{whatsappSent ? 'Opening WhatsApp...' : 'WhatsApp Mom'}</span>

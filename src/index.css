@@ -51,14 +51,157 @@
   to { transform: translateX(0); }
 }
 
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(0.5deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes streamLine {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes voiceBar {
+  0%, 100% { height: 6px; }
+  50% { height: 28px; }
+}
+
+@keyframes waveOrbit {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .animate-fadeIn {
-  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slideDown {
-  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slideInRight {
   animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-floatSlow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-pulseGlow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(16, 185, 129, 0.25); }
+  50% { transform: scale(1.04); box-shadow: 0 0 45px rgba(20, 184, 166, 0.45); }
+}
+
+@keyframes celestialOrbit {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes reverseOrbit {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
+@keyframes helixFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes signalPulse {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.6; }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-celestialOrbit {
+  animation: celestialOrbit 28s linear infinite;
+}
+
+.animate-reverseOrbit {
+  animation: reverseOrbit 28s linear infinite;
+}
+
+.animate-signalPulse {
+  animation: signalPulse 3s ease-in-out infinite;
+}
+
+.bg-helix-gradient {
+  background: linear-gradient(270deg, #10b981, #14b8a6, #6366f1, #10b981);
+  background-size: 300% 300%;
+  animation: helixFlow 6s ease infinite;
+}
+
+@keyframes ecgLine {
+  0% { stroke-dashoffset: 400; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes shockwave {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes laserPulse {
+  0% { stroke-dashoffset: 100%; opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0%; opacity: 0.3; }
+}
+
+@keyframes soundWave {
+  0%, 100% { height: 4px; }
+  50% { height: 32px; }
+}
+
+.animate-ecgLine {
+  stroke-dasharray: 400;
+  animation: ecgLine 3s linear infinite;
+}
+
+.animate-shockwave {
+  animation: shockwave 2s ease-out infinite;
+}
+
+.animate-laserPulse {
+  stroke-dasharray: 20;
+  animation: laserPulse 2s linear infinite;
+}
+
+.animate-soundWave {
+  animation: soundWave 1.2s ease-in-out infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1200 {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -16,12 +16,12 @@ import {
 } from '../types';
 
 export const MOCK_BASELINE_AAI: PersonalBaseline = {
-  patientId: 'patient-aai-101',
-  patientName: 'Anusuya Deshmukh',
+  patientId: 'patient-senior-101',
+  patientName: 'Senior Patient',
   preferredName: {
-    en: 'Aai',
-    hi: 'आई (Aai)',
-    mr: 'आई'
+    en: 'Parent',
+    hi: 'माता-पिता',
+    mr: 'आई-बाबा'
   },
   age: 72,
   diabetesType: 'Type 2',

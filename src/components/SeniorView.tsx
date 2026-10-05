@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { INDIAN_FOOD_DATABASE } from '../engine/IndianFoodAI';
 import { SmartNextActionCard } from './SmartNextActionCard';
+import { ChronoRoutineTimeline } from './ChronoRoutineTimeline';
 import { 
   Mic, 
   HelpCircle, 
@@ -31,7 +32,9 @@ import {
   Heart,
   Plus,
   ChevronRight,
-  Info
+  Info,
+  AlertOctagon,
+  Share2
 } from 'lucide-react';
 
 interface SeniorViewProps {
@@ -50,6 +53,8 @@ interface SeniorViewProps {
   onLogGlucoseModal: () => void;
   onSelectDetailItem?: (item: SelectedDetailItem) => void;
   recentEvents?: TelemetryEvent[];
+  onOpenEmergencySOS?: () => void;
+  onOpenShareReport?: () => void;
 }
 
 export const SeniorView: React.FC<SeniorViewProps> = ({
@@ -68,6 +73,8 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
   onLogGlucoseModal,
   onSelectDetailItem,
   recentEvents = [],
+  onOpenEmergencySOS,
+  onOpenShareReport
 }) => {
   const [showMealPicker, setShowMealPicker] = useState(false);
 
@@ -102,10 +109,10 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
     if (latestGlucose && latestGlucose.value < 70) {
       return {
         id: 'hypo-carbs',
-        title: 'Take 15 Grams of Fast-Acting Carbs',
-        subtitle: 'Half cup fresh fruit juice or 3 glucose biscuits. Rest comfortably.',
+        title: 'Emergency: Low Sugar Rescue (Rule of 15)',
+        subtitle: 'Consume 15g fast-acting sugar or juice immediately. Rest comfortably.',
         whyItMatters: 'Restores blood sugar safely within the 15-minute clinical window.',
-        actionLabel: 'View Calming Guide',
+        actionLabel: 'Open SOS Protocol',
         actionType: 'VIEW_INSIGHTS',
         urgency: 'CRITICAL'
       };
@@ -135,6 +142,10 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
   }, [medications, latestGlucose, activity]);
 
   const handleExecuteNextAction = () => {
+    if (latestGlucose && latestGlucose.value < 70 && onOpenEmergencySOS) {
+      onOpenEmergencySOS();
+      return;
+    }
     if (smartNextAction.actionType === 'LOG_MED' && smartNextAction.targetId) {
       onToggleMedication(smartNextAction.targetId);
     } else if (smartNextAction.actionType === 'VIEW_INSIGHTS') {
@@ -194,6 +205,11 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
       mr: 'बाकी आहे ⏰',
       hi: 'बाकी है ⏰',
       en: 'Pending ⏰'
+    },
+    sosBtn: {
+      mr: 'आपत्कालीन SOS',
+      hi: 'आपातकालीन SOS',
+      en: 'Emergency SOS'
     }
   };
 
@@ -229,7 +245,7 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
             </p>
           </div>
 
-          {/* Explainable AI Status Badge */}
+          {/* Explainable AI Status Badge & Quick Actions */}
           <div className="flex items-center space-x-2">
             <div className={`flex items-center space-x-2 py-1.5 px-3.5 rounded-full border text-xs font-bold ${statusTheme.badge}`}>
               {statusTheme.icon}
@@ -238,12 +254,34 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
 
             <button
               onClick={onOpenWhy}
-              className="py-1.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1 active:scale-95"
-              title="Explainable AI Rationale"
+              className="py-1.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1 active:scale-95 cursor-pointer"
+              title="Explainable AI Rationale & Counterfactual Simulator"
             >
               <HelpCircle className="w-3.5 h-3.5 text-teal-600" />
               <span>{labels.whyBtn[language]}</span>
             </button>
+
+            {onOpenEmergencySOS && (
+              <button
+                onClick={onOpenEmergencySOS}
+                className="py-1.5 px-3 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 text-xs font-bold transition flex items-center gap-1 active:scale-95 cursor-pointer"
+                title="Emergency SOS & Hypoglycemia 15-15 Rule"
+              >
+                <AlertOctagon className="w-3.5 h-3.5 text-rose-600" />
+                <span className="hidden sm:inline">{labels.sosBtn[language]}</span>
+              </button>
+            )}
+
+            {onOpenShareReport && (
+              <button
+                onClick={onOpenShareReport}
+                className="py-1.5 px-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1 active:scale-95 cursor-pointer"
+                title="Share Medical Summary (WhatsApp & PDF)"
+              >
+                <Share2 className="w-3.5 h-3.5 text-teal-600" />
+                <span className="hidden md:inline">Share</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -258,6 +296,25 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Hypoglycemia Emergency Alert Banner if Glucose is dangerously low */}
+      {latestGlucose && latestGlucose.value < 70 && onOpenEmergencySOS && (
+        <div className="bg-rose-500 text-white p-4 rounded-3xl shadow-lg flex items-center justify-between animate-pulse">
+          <div className="flex items-center space-x-3">
+            <AlertOctagon className="w-6 h-6" />
+            <div>
+              <p className="text-xs uppercase font-black tracking-wider">Hypoglycemia Rescue Protocol Needed</p>
+              <p className="text-sm font-bold">Current Reading: {latestGlucose.value} mg/dL (Below Safe 70 mg/dL Threshold)</p>
+            </div>
+          </div>
+          <button
+            onClick={onOpenEmergencySOS}
+            className="py-2 px-4 bg-white text-rose-600 rounded-xl font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+          >
+            Launch SOS Rule of 15
+          </button>
+        </div>
+      )}
 
       {/* 2. Smart Next Best Action Card (Rare Feature) */}
       <SmartNextActionCard
@@ -366,7 +423,7 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
 
           <button
             onClick={() => setShowMealPicker(!showMealPicker)}
-            className="mt-3 w-full py-2 px-3 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-900 dark:text-amber-200 text-xs font-bold rounded-xl border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1 transition"
+            className="mt-3 w-full py-2 px-3 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-900 dark:text-amber-200 text-xs font-bold rounded-xl border border-amber-200 dark:border-amber-800 flex items-center justify-center gap-1 transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{labels.tapToLogFood[language]}</span>
@@ -414,7 +471,7 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
                   onLogMeal(item);
                   setShowMealPicker(false);
                 }}
-                className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-2xl border border-slate-200 dark:border-slate-700 text-left transition active:scale-95"
+                className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-2xl border border-slate-200 dark:border-slate-700 text-left transition active:scale-95 cursor-pointer"
               >
                 <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
                   {language === 'mr' ? item.nameMr : item.nameEn}
@@ -430,11 +487,23 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
         </div>
       )}
 
-      {/* 4. Action CTA Buttons */}
+      {/* 4. Chrono-Routine 4-Phase Timeline (Today's Rhythm) */}
+      <ChronoRoutineTimeline
+        medications={medications}
+        meals={meals}
+        activity={activity}
+        latestGlucose={latestGlucose}
+        language={language}
+        onToggleMedication={onToggleMedication}
+        onLogGlucoseModal={onLogGlucoseModal}
+        onOpenTellMeWhatToDo={onOpenTellMeWhatToDo}
+      />
+
+      {/* 5. Action CTA Buttons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <button
           onClick={onOpenTellMeWhatToDo}
-          className="py-4 px-6 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-2xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center space-x-2 font-black text-sm"
+          className="py-4 px-6 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-2xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center space-x-2 font-black text-sm cursor-pointer"
         >
           <Sparkles className="w-5 h-5 text-yellow-300" />
           <span>{labels.tellMeBtn[language]}</span>
@@ -442,7 +511,7 @@ export const SeniorView: React.FC<SeniorViewProps> = ({
 
         <button
           onClick={onOpenVoice}
-          className="py-4 px-6 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs transition active:scale-98 flex items-center justify-center space-x-2 font-bold text-sm"
+          className="py-4 px-6 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xs transition active:scale-98 flex items-center justify-center space-x-2 font-bold text-sm cursor-pointer"
         >
           <Mic className="w-5 h-5 text-teal-600" />
           <span>Talk to AI Voice Companion</span>

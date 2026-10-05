@@ -34,6 +34,8 @@ import {
 } from './data/mockProfiles';
 import { PersonalBaselineEngine } from './engine/PersonalBaselineEngine';
 import { VoiceIntentResult } from './engine/VoiceEngine';
+import { AuthService, AppUser } from './lib/supabase';
+import { SugarSenseApiClient } from './services/api';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { SeniorView } from './components/SeniorView';
@@ -56,11 +58,15 @@ import { CommandPalette } from './components/CommandPalette';
 import { DetailDrawer } from './components/DetailDrawer';
 import { FocusModeView } from './components/FocusModeView';
 import { ToastContainer } from './components/ToastContainer';
+import { AuthModal } from './components/AuthModal';
+import { EmergencySOSModal } from './components/EmergencySOSModal';
+import { ShareableReportModal } from './components/ShareableReportModal';
+import { LandingView } from './components/LandingView';
 
 export const App: React.FC = () => {
   // Product Memory Initializers
   const [currentTab, setCurrentTab] = useState<NavigationTab>(() => {
-    return (localStorage.getItem('sugarsense_tab') as NavigationTab) || 'dashboard';
+    return (localStorage.getItem('sugarsense_tab') as NavigationTab) || 'landing';
   });
   const [language, setLanguage] = useState<Language>(() => {
     return (localStorage.getItem('sugarsense_lang') as Language) || 'en';
@@ -72,6 +78,21 @@ export const App: React.FC = () => {
     return (localStorage.getItem('sugarsense_density') as DensityMode) || 'comfortable';
   });
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+
+  // Authentication & Role State (Supabase Auth)
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
+    return AuthService.getStoredUser() || {
+      id: 'usr-default',
+      email: 'user@sugarsense.in',
+      name: 'Senior Patient',
+      role: 'SENIOR',
+      patientId: 'patient-senior-101',
+      createdAt: new Date().toISOString()
+    };
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'signin' | 'signup'>('signin');
+  const [isBackendOnline, setIsBackendOnline] = useState<boolean>(false);
 
   // Shell State
   const [activeScenario, setActiveScenario] = useState<string>('normal');
@@ -99,6 +120,8 @@ export const App: React.FC = () => {
   const [isGlucoseModalOpen, setIsGlucoseModalOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isEmergencySOSOpen, setIsEmergencySOSOpen] = useState(false);
+  const [isShareReportOpen, setIsShareReportOpen] = useState(false);
   const [selectedDetailItem, setSelectedDetailItem] = useState<SelectedDetailItem | null>(null);
 
   // Toasts
@@ -126,6 +149,15 @@ export const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sugarsense_density', density);
   }, [density]);
+
+  // Check Backend Connectivity on load
+  useEffect(() => {
+    SugarSenseApiClient.checkHealth().then((health) => {
+      if (health) {
+        setIsBackendOnline(true);
+      }
+    });
+  }, []);
 
   // Keyboard shortcut listener for ⌘K / Ctrl+K
   useEffect(() => {
@@ -193,6 +225,7 @@ export const App: React.FC = () => {
           source: 'MANUAL'
         };
         setTelemetryEvents(curr => [newEvent, ...curr]);
+        SugarSenseApiClient.logTelemetry(newEvent);
 
         addToast(
           toggledMed.taken ? 'success' : 'warning',
@@ -230,6 +263,7 @@ export const App: React.FC = () => {
       source: 'MANUAL'
     };
     setTelemetryEvents(curr => [newEvent, ...curr]);
+    SugarSenseApiClient.logTelemetry(newEvent);
 
     addToast('success', 'Food Recorded', `${displayName} added to daily diet log.`);
   }, [language, addToast]);
@@ -263,6 +297,7 @@ export const App: React.FC = () => {
       source: 'MANUAL'
     };
     setTelemetryEvents(curr => [newEvent, ...curr]);
+    SugarSenseApiClient.logTelemetry(newEvent);
 
     addToast(
       isDeviation ? 'warning' : 'success',
@@ -292,6 +327,7 @@ export const App: React.FC = () => {
       source: 'MANUAL'
     };
     setTelemetryEvents(curr => [newEvent, ...curr]);
+    SugarSenseApiClient.logTelemetry(newEvent);
 
     addToast('success', 'Activity Logged', `${steps} steps recorded toward 3,500 daily goal.`);
   }, [addToast]);
@@ -310,6 +346,7 @@ export const App: React.FC = () => {
       source: 'MANUAL'
     };
     setTelemetryEvents(curr => [newEvent, ...curr]);
+    SugarSenseApiClient.logTelemetry(newEvent);
 
     addToast('info', 'Symptoms Recorded', 'AI risk engine updated with symptom telemetry.');
   }, [addToast]);
@@ -345,6 +382,16 @@ export const App: React.FC = () => {
     if (data.glassesDrunk >= data.targetGlasses) {
       addToast('success', 'Hydration Goal Reached! 🎉', 'You have completed 8 glasses of water today.');
     }
+  }, [addToast]);
+
+  const handleAuthSuccess = useCallback((user: AppUser) => {
+    setCurrentUser(user);
+    setBaseline(prev => ({ ...prev, patientName: user.name }));
+    setSettings(prev => ({ ...prev, activeRole: user.role }));
+    addToast('success', 'Authenticated with Supabase', `Logged in as ${user.name} (${user.role}).`);
+    if (user.role === 'CAREGIVER') setCurrentTab('caregiver');
+    else if (user.role === 'DOCTOR') setCurrentTab('doctor');
+    else setCurrentTab('dashboard');
   }, [addToast]);
 
   // Voice Interaction Handler
@@ -460,6 +507,44 @@ export const App: React.FC = () => {
     addToast('success', 'Export Successful', 'Telemetry CSV downloaded for doctor review.');
   }, [telemetryEvents, addToast]);
 
+  const handleApplySimulatedActions = useCallback((actionNames: string[]) => {
+    setMedications(prev => prev.map(m => ({ 
+      ...m, 
+      taken: true, 
+      takenAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+    })));
+    setActivity(prev => ({ ...prev, stepsToday: Math.min(prev.stepTarget, prev.stepsToday + 1200) }));
+    setHydration(prev => ({ ...prev, glassesDrunk: Math.min(prev.targetGlasses, prev.glassesDrunk + 2) }));
+    
+    const newEvent: TelemetryEvent = {
+      id: `evt-sim-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      timeDisplay: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      category: 'MEDICATION',
+      title: 'Counterfactual Routine Recovery Actions Executed',
+      detail: `Applied actions: ${actionNames.join(', ')}`,
+      statusTag: 'CONFIRMED',
+      source: 'MANUAL'
+    };
+    setTelemetryEvents(prev => [newEvent, ...prev]);
+    addToast('success', 'Micro-Interventions Applied!', `Applied: ${actionNames.join(', ')}. Horizon risk dropping toward stable baseline.`);
+  }, [addToast]);
+
+  const handleLogEmergencyEvent = useCallback((note: string) => {
+    const newEvent: TelemetryEvent = {
+      id: `evt-sos-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      timeDisplay: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      category: 'ALERT',
+      title: 'Emergency SOS & Rule of 15 Protocol Triggered',
+      detail: note,
+      statusTag: 'ALERT',
+      source: 'MANUAL'
+    };
+    setTelemetryEvents(prev => [newEvent, ...prev]);
+    addToast('warning', 'Emergency SOS Dispatched', 'Caregiver alerted with live glucose reading.');
+  }, [addToast]);
+
   // Dynamic Density Styling
   const densityPadding = {
     compact: 'p-3 sm:p-4',
@@ -479,6 +564,7 @@ export const App: React.FC = () => {
         onOpenWhy={() => setIsWhyOpen(true)}
         onExitFocusMode={() => setIsFocusMode(false)}
         language={language}
+        onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
       />
     );
   }
@@ -515,10 +601,39 @@ export const App: React.FC = () => {
           density={density}
           onChangeDensity={setDensity}
           onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
+          currentUser={currentUser}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          isBackendOnline={isBackendOnline}
+          onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
+          onOpenShareReport={() => setIsShareReportOpen(true)}
         />
 
         {/* Dynamic Scrollable Page Content */}
-        <main className={`flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 ${densityPadding}`}>
+        <main className={`flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 ${currentTab === 'landing' ? 'p-0' : densityPadding}`}>
+          {currentTab === 'landing' && (
+            <LandingView
+              baseline={baseline}
+              language={language}
+              currentUser={currentUser}
+              assessment={assessment}
+              latestGlucose={latestGlucose}
+              medications={medications}
+              activity={activity}
+              onNavigate={setCurrentTab}
+              onOpenVoice={() => setIsVoiceOpen(true)}
+              onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
+              onOpenShareReport={() => setIsShareReportOpen(true)}
+              onOpenSignIn={() => {
+                setAuthInitialMode('signin');
+                setIsAuthModalOpen(true);
+              }}
+              onOpenSignUp={() => {
+                setAuthInitialMode('signup');
+                setIsAuthModalOpen(true);
+              }}
+            />
+          )}
+
           {currentTab === 'dashboard' && (
             <SeniorView
               baseline={baseline}
@@ -536,6 +651,8 @@ export const App: React.FC = () => {
               onLogGlucoseModal={() => setIsGlucoseModalOpen(true)}
               onSelectDetailItem={(item) => setSelectedDetailItem(item)}
               recentEvents={telemetryEvents.slice(0, 4)}
+              onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
+              onOpenShareReport={() => setIsShareReportOpen(true)}
             />
           )}
 
@@ -618,6 +735,8 @@ export const App: React.FC = () => {
                 setAlerts(prev => prev.map(a => a.id === id ? { ...a, acknowledged: true } : a));
                 addToast('info', 'Alert Acknowledged', 'Caregiver safety net updated.');
               }}
+              onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
+              onOpenShareReport={() => setIsShareReportOpen(true)}
             />
           )}
 
@@ -627,6 +746,7 @@ export const App: React.FC = () => {
               latestGlucose={latestGlucose}
               assessment={assessment}
               language={language}
+              onOpenShareReport={() => setIsShareReportOpen(true)}
             />
           )}
 
@@ -660,6 +780,14 @@ export const App: React.FC = () => {
       </div>
 
       {/* 3. Global Interactive Modals & Drawers */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        language={language}
+        initialMode={authInitialMode}
+      />
+
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
@@ -672,6 +800,8 @@ export const App: React.FC = () => {
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
         onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
         onExportCSV={handleExportCSV}
+        onOpenEmergencySOS={() => setIsEmergencySOSOpen(true)}
+        onOpenShareReport={() => setIsShareReportOpen(true)}
       />
 
       <DetailDrawer
@@ -693,6 +823,7 @@ export const App: React.FC = () => {
         onClose={() => setIsWhyOpen(false)}
         assessment={assessment}
         language={language}
+        onApplySimulatedActions={handleApplySimulatedActions}
       />
 
       <TellMeWhatToDoModal
@@ -719,6 +850,24 @@ export const App: React.FC = () => {
         onLogMeal={handleLogIndianFood}
         onLogActivity={handleLogSteps}
         onReportSymptoms={handleReportSymptoms}
+      />
+
+      <EmergencySOSModal
+        isOpen={isEmergencySOSOpen}
+        onClose={() => setIsEmergencySOSOpen(false)}
+        baseline={baseline}
+        latestGlucose={latestGlucose}
+        language={language}
+        onLogEmergencyEvent={handleLogEmergencyEvent}
+      />
+
+      <ShareableReportModal
+        isOpen={isShareReportOpen}
+        onClose={() => setIsShareReportOpen(false)}
+        baseline={baseline}
+        latestGlucose={latestGlucose}
+        assessment={assessment}
+        language={language}
       />
 
       {/* 4. Global Toast Notification Layer */}

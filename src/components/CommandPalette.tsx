@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavigationTab, Language, ThemeMode, DensityMode } from '../types';
 import { 
+  Home,
   Search, 
   LayoutDashboard, 
   Bot,
@@ -23,7 +24,9 @@ import {
   Maximize2, 
   X,
   ArrowRight,
-  Sliders
+  Sliders,
+  AlertOctagon,
+  Share2
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -38,6 +41,8 @@ interface CommandPaletteProps {
   onToggleTheme: () => void;
   onToggleFocusMode: () => void;
   onExportCSV: () => void;
+  onOpenEmergencySOS?: () => void;
+  onOpenShareReport?: () => void;
 }
 
 interface CommandItem {
@@ -61,6 +66,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onToggleTheme,
   onToggleFocusMode,
   onExportCSV,
+  onOpenEmergencySOS,
+  onOpenShareReport,
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -68,6 +75,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const allCommands: CommandItem[] = [
     // Navigation
+    {
+      id: 'nav-landing',
+      title: 'Go to Product Home & Interactive Living Orbit (Landing)',
+      category: 'Navigation',
+      icon: <Home className="w-4 h-4 text-teal-500" />,
+      shortcut: 'G H',
+      action: () => onNavigate('landing')
+    },
     {
       id: 'nav-dash',
       title: 'Go to Senior Dashboard',
@@ -156,6 +171,30 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       shortcut: 'G S',
       action: () => onNavigate('settings')
     },
+
+    // Emergency & Clinical Actions
+    ...(onOpenEmergencySOS ? [{
+      id: 'act-sos',
+      title: 'Trigger Emergency SOS & Rule of 15 Rescue Protocol',
+      category: 'Emergency',
+      icon: <AlertOctagon className="w-4 h-4 text-rose-600" />,
+      shortcut: 'S O S',
+      action: () => {
+        onClose();
+        onOpenEmergencySOS();
+      }
+    }] : []),
+    ...(onOpenShareReport ? [{
+      id: 'act-share-report',
+      title: 'Share Medical Summary via WhatsApp & PDF',
+      category: 'Clinical Export',
+      icon: <Share2 className="w-4 h-4 text-teal-600" />,
+      shortcut: '⌘ S',
+      action: () => {
+        onClose();
+        onOpenShareReport();
+      }
+    }] : []),
 
     // Actions
     {

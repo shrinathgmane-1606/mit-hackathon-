@@ -3,6 +3,7 @@ export type Language = 'mr' | 'hi' | 'en';
 export type SeniorStatus = 'STABLE' | 'ATTENTION' | 'HIGH_RISK';
 
 export type NavigationTab = 
+  | 'landing'
   | 'dashboard' 
   | 'assistant' 
   | 'reminders' 

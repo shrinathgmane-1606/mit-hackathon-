@@ -7,6 +7,19 @@ import {
 } from '../types';
 import { MOCK_HISTORICAL_14_DAYS } from '../data/mockProfiles';
 import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid, 
+  ReferenceArea, 
+  ReferenceLine 
+} from 'recharts';
+import { 
   FileText, 
   TrendingUp, 
   Calendar, 
@@ -22,29 +35,39 @@ import {
   AlertCircle,
   Share2
 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 
 interface DoctorDashboardProps {
   baseline: PersonalBaseline;
   latestGlucose: GlucoseReading | null;
   assessment: CompoundRiskAssessment;
   language: Language;
+  onOpenShareReport?: () => void;
 }
 
 export const DoctorDashboard: React.FC<DoctorDashboardProps> = ({
   baseline,
   latestGlucose,
   assessment,
+  onOpenShareReport
 }) => {
   const [copied, setCopied] = useState(false);
   const [timeRange, setTimeRange] = useState<'7D' | '14D' | '30D'>('14D');
-  const [hoveredDay, setHoveredDay] = useState<any>(null);
 
   const displayedHistory = React.useMemo(() => {
-    if (timeRange === '7D') {
-      return MOCK_HISTORICAL_14_DAYS.slice(-7);
-    }
-    return MOCK_HISTORICAL_14_DAYS;
-  }, [timeRange]);
+    const list = timeRange === '7D' ? MOCK_HISTORICAL_14_DAYS.slice(-7) : MOCK_HISTORICAL_14_DAYS;
+    return list.map((item, idx) => ({
+      day: idx === list.length - 1 ? 'Today' : item.day.replace('Day ', 'D'),
+      fasting: item.fasting,
+      postMeal: item.postMeal,
+      adherence: item.adherence,
+      steps: item.steps,
+      targetMin: baseline.fastingGlucoseBaseline.min,
+      targetMax: baseline.postPrandialBaseline.max
+    }));
+  }, [timeRange, baseline]);
 
   const clinicalSummaryNote = `CLINICAL VISIT SUMMARY — SUGARSENSE AI PLATFORM
 Patient Name: ${baseline.patientName} (Age: ${baseline.age}, ${baseline.diabetesType})
@@ -66,7 +89,7 @@ Generated At: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long', time
 
 3. MULTI-FACTOR PATTERN RECOGNITION:
 - Primary Correlation: Elevated post-dinner glucose readings (170-195 mg/dL) directly correlate with delayed dinner timing (>21:15 vs usual 20:00) and missed post-meal walks.
-- Recent 24-hr Horizon: ${assessment.doctorSummaryNote}
+- Recent 24-hr Horizon: ${assessment.doctorSummaryNote || "Steady routine observed."}
 
 4. AI DECISION-SUPPORT RECOMMENDATIONS:
 - Reinforce dinner timing consistency (target < 20:15) to minimize late-evening insulin resistance spikes.
@@ -84,18 +107,21 @@ Generated At: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long', time
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
       {/* 1. Header with Physician Overview */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-xs">
+      <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-3.5">
             <div className="p-3 bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 rounded-2xl">
               <Stethoscope className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Clinical Visit Report & Longitudinal Review
-              </h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Clinical Visit Report & Longitudinal Review
+                </h2>
+                <Badge variant="teal">Doctor Portal</Badge>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                 Patient: <strong>{baseline.patientName}</strong> • Age: {baseline.age} • {baseline.diabetesType} ({baseline.yearsWithDiabetes} yrs)
               </p>
@@ -103,65 +129,81 @@ Generated At: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long', time
           </div>
 
           <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCopyNote}
-              className="flex items-center space-x-1.5 py-2 px-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition active:scale-95"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? 'Copied to Clipboard!' : 'Copy EHR Note'}</span>
-            </button>
-            <button
+            {onOpenShareReport && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenShareReport}
+                className="flex items-center space-x-1.5"
+              >
+                <Share2 className="w-4 h-4 text-teal-600" />
+                <span>Share Summary</span>
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handlePrint}
-              className="flex items-center space-x-1.5 py-2 px-3.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95"
+              className="flex items-center space-x-1.5"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print Visit PDF</span>
-            </button>
+              <Printer className="w-4 h-4 text-slate-500" />
+              <span>Print EHR</span>
+            </Button>
+
+            <Button
+              variant="teal"
+              size="sm"
+              onClick={handleCopyNote}
+              className="flex items-center space-x-1.5"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              <span>{copied ? 'Copied Summary' : 'Copy Clinical Note'}</span>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* 2. Top-Level Clinical KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <Card className="p-5">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Personal Time-In-Range</p>
           <p className="text-3xl font-black text-emerald-600 font-mono mt-1">86.4%</p>
           <p className="text-[11px] text-slate-500 mt-1">Target: {baseline.postPrandialBaseline.min}–{baseline.postPrandialBaseline.max} mg/dL</p>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <Card className="p-5">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Rx Adherence</p>
           <p className="text-3xl font-black text-teal-600 font-mono mt-1">93.8%</p>
           <p className="text-[11px] text-slate-500 mt-1">28/30 doses taken on-time</p>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <Card className="p-5">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Meal Timing Drift</p>
           <p className="text-3xl font-black text-amber-600 font-mono mt-1">± 22m</p>
           <p className="text-[11px] text-slate-500 mt-1">Stable circadian cadence</p>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <Card className="p-5">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mean Mobility</p>
           <p className="text-3xl font-black text-slate-900 dark:text-white font-mono mt-1">3,540</p>
           <p className="text-[11px] text-slate-500 mt-1">Steps / day (Target: {baseline.baselineDailySteps})</p>
-        </div>
+        </Card>
       </div>
 
-      {/* 3. Longitudinal Glucose Baseline Visualization */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+      {/* 3. Longitudinal Glucose Baseline Recharts Visualization */}
+      <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-base font-black text-slate-900 dark:text-white">
               Glucose Telemetry vs Personalized Baseline Corridor
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Learned Corridor: {baseline.fastingGlucoseBaseline.min}–{baseline.postPrandialBaseline.max} mg/dL (Individualized Model)
+              Learned Corridor: {baseline.fastingGlucoseBaseline.min}–{baseline.postPrandialBaseline.max} mg/dL (Individualized EWMA Model)
             </p>
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Time range pills */}
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
               {(['7D', '14D', '30D'] as const).map((range) => (
                 <button
@@ -183,73 +225,60 @@ Generated At: ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long', time
         {/* Legend */}
         <div className="flex items-center space-x-4 text-xs font-bold mb-3">
           <span className="flex items-center gap-1.5 text-teal-700 dark:text-teal-400">
-            <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" /> Fasting Glucose
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block" /> Fasting (mg/dL)
           </span>
-          <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Post-Meal Glucose
+          <span className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-400">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Post-Meal (mg/dL)
           </span>
           <span className="flex items-center gap-1.5 text-slate-400">
-            <span className="w-3 h-0.5 bg-slate-300 dark:bg-slate-600 inline-block" /> Baseline Limits
+            <span className="w-3 h-2 rounded-xs bg-emerald-500/20 border border-emerald-500/40 inline-block" /> Target Baseline
           </span>
         </div>
 
-        {/* Custom SVG Longitudinal Chart */}
-        <div className="w-full h-60 bg-slate-50 dark:bg-slate-950/60 rounded-2xl p-4 relative overflow-hidden border border-slate-100 dark:border-slate-800 flex items-end justify-between gap-1">
-          {displayedHistory.map((item, idx) => {
-            const fastingHeight = Math.max(10, Math.min(90, ((item.fasting - 70) / 180) * 100));
-            const postMealHeight = Math.max(15, Math.min(95, ((item.postMeal - 70) / 180) * 100));
-
-            return (
-              <div
-                key={idx}
-                onMouseEnter={() => setHoveredDay(item)}
-                onMouseLeave={() => setHoveredDay(null)}
-                className="flex-1 flex flex-col items-center h-full justify-end group relative cursor-pointer"
-              >
-                {/* Hover Tooltip */}
-                <div className="absolute -top-12 bg-slate-900 text-white text-[10px] py-1 px-2.5 rounded-xl opacity-0 group-hover:opacity-100 transition pointer-events-none z-10 whitespace-nowrap shadow-xl border border-slate-700">
-                  {item.day}: Fasting {item.fasting} | Post-Meal {item.postMeal} mg/dL ({item.adherence}% Rx)
-                </div>
-
-                {/* Bars */}
-                <div className="w-full flex justify-center items-end gap-1 h-44">
-                  <div
-                    style={{ height: `${fastingHeight}%` }}
-                    className="w-2 sm:w-3 bg-teal-500 rounded-t-sm group-hover:bg-teal-400 transition"
-                  />
-                  <div
-                    style={{ height: `${postMealHeight}%` }}
-                    className="w-2 sm:w-3 bg-amber-500 rounded-t-sm group-hover:bg-amber-400 transition"
-                  />
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 mt-2 truncate w-full text-center">
-                  {item.day.replace('Day ', 'D')}
-                </span>
-              </div>
-            );
-          })}
+        {/* Recharts Longitudinal Chart */}
+        <div className="w-full h-72 pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={displayedHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="docFasting" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#0d9488" stopOpacity={0.0} />
+                </linearGradient>
+                <linearGradient id="docPostMeal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <YAxis domain={[70, 180]} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+              />
+              <ReferenceArea y1={baseline.fastingGlucoseBaseline.min} y2={baseline.postPrandialBaseline.max} fill="#10b981" fillOpacity={0.08} />
+              <Area type="monotone" dataKey="postMeal" name="Post-Meal (mg/dL)" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#docPostMeal)" />
+              <Area type="monotone" dataKey="fasting" name="Fasting (mg/dL)" stroke="#0d9488" strokeWidth={2.5} fillOpacity={1} fill="url(#docFasting)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </Card>
 
-      {/* 4. Structured AI Visit Summary Note (Formatted for EHR / Print) */}
-      <div className="bg-slate-900 text-slate-100 rounded-3xl p-6 shadow-xl border border-slate-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2 text-teal-400 font-bold text-sm">
-            <Sparkles className="w-5 h-5" />
-            <span>AI Clinical Consultation Summary (EHR Export Format)</span>
+      {/* 4. Structured Clinical Note (EHR Exportable) */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-teal-600" />
+            <h3 className="text-base font-black text-slate-900 dark:text-white">
+              AI Decision-Support Visit Note (EHR Exportable)
+            </h3>
           </div>
-          <button
-            onClick={handleCopyNote}
-            className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl text-slate-300 font-medium transition active:scale-95"
-          >
-            {copied ? 'Copied ✅' : 'Copy Text'}
-          </button>
+          <Badge variant="teal">Ready for Review</Badge>
         </div>
 
-        <pre className="text-xs sm:text-sm font-mono text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800 overflow-x-auto">
+        <pre className="p-4 bg-slate-900 text-slate-200 text-xs font-mono rounded-2xl overflow-x-auto leading-relaxed border border-slate-800">
           {clinicalSummaryNote}
         </pre>
-      </div>
+      </Card>
     </div>
   );
 };

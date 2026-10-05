@@ -1,6 +1,6 @@
 import React from 'react';
 import { CompoundRiskAssessment, PersonalBaseline, Medication, Language } from '../types';
-import { Minimize2, Mic, CheckCircle2, Heart, Sparkles, HelpCircle } from 'lucide-react';
+import { Minimize2, Mic, CheckCircle2, Heart, Sparkles, HelpCircle, AlertOctagon } from 'lucide-react';
 
 interface FocusModeViewProps {
   baseline: PersonalBaseline;
@@ -11,6 +11,7 @@ interface FocusModeViewProps {
   onOpenWhy: () => void;
   onExitFocusMode: () => void;
   language: Language;
+  onOpenEmergencySOS?: () => void;
 }
 
 export const FocusModeView: React.FC<FocusModeViewProps> = ({
@@ -22,12 +23,13 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
   onOpenWhy,
   onExitFocusMode,
   language,
+  onOpenEmergencySOS
 }) => {
   const pendingMeds = medications.filter(m => !m.taken);
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-white flex flex-col justify-between p-6 sm:p-12 relative animate-fadeIn font-sans">
-      {/* Top bar with Exit */}
+      {/* Top bar with Exit & SOS */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
@@ -36,13 +38,25 @@ export const FocusModeView: React.FC<FocusModeViewProps> = ({
           </span>
         </div>
 
-        <button
-          onClick={onExitFocusMode}
-          className="flex items-center space-x-1.5 py-2 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition"
-        >
-          <Minimize2 className="w-4 h-4" />
-          <span>Exit Focus Mode</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          {onOpenEmergencySOS && (
+            <button
+              onClick={onOpenEmergencySOS}
+              className="flex items-center space-x-1.5 py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md transition active:scale-95 animate-pulse cursor-pointer"
+            >
+              <AlertOctagon className="w-4 h-4" />
+              <span>Emergency SOS</span>
+            </button>
+          )}
+
+          <button
+            onClick={onExitFocusMode}
+            className="flex items-center space-x-1.5 py-2 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+          >
+            <Minimize2 className="w-4 h-4" />
+            <span>Exit Focus Mode</span>
+          </button>
+        </div>
       </div>
 
       {/* Central High-Legibility Display */}

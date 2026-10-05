@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationTab, PersonalBaseline, Language, SeniorStatus } from '../types';
 import { 
+  Home,
   LayoutDashboard, 
   Bot,
   Bell,
@@ -40,6 +41,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
   status
 }) => {
   const navItems = [
+    {
+      id: 'landing' as NavigationTab,
+      label: {
+        en: 'Product Home',
+        mr: 'मुख्य परिचय (Home)',
+        hi: 'मुख्य परिचय (Home)'
+      },
+      icon: <Home className="w-4 h-4" />,
+      badge: 'Overview'
+    },
     {
       id: 'dashboard' as NavigationTab,
       label: {

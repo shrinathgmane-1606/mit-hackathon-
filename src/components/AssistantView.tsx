@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Language, PersonalBaseline, GlucoseReading, Medication, Meal, ActivityData, ChatMessage, CompoundRiskAssessment } from '../types';
 import { MOCK_CHAT_CONVERSATION_INITIAL } from '../data/mockProfiles';
 import { VoiceEngine } from '../engine/VoiceEngine';
+import { SugarSenseApiClient } from '../services/api';
 import { 
   Bot, 
   Send, 
@@ -235,19 +236,39 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
     setInputQuery('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const resp = generateAssistantResponse(query);
-      const assistantMsg: ChatMessage = {
-        id: `msg-${Date.now()}-ai`,
-        sender: 'assistant',
-        text: resp.text,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        sources: resp.sources,
-        suggestedFollowups: resp.followups
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      setIsTyping(false);
-    }, 700);
+    const patientContext = {
+      latestGlucose: latestGlucose?.value,
+      medicationsTaken: medications.filter(m => m.taken).map(m => m.name),
+      stepsToday: activity.stepsToday,
+      riskStatus: assessment.status
+    };
+
+    SugarSenseApiClient.askAssistant(query, language, patientContext).then((groqResp) => {
+      if (groqResp) {
+        const assistantMsg: ChatMessage = {
+          id: `msg-${Date.now()}-ai`,
+          sender: 'assistant',
+          text: groqResp.reply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          sources: groqResp.sources,
+          suggestedFollowups: groqResp.followups
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setIsTyping(false);
+      } else {
+        const resp = generateAssistantResponse(query);
+        const assistantMsg: ChatMessage = {
+          id: `msg-${Date.now()}-ai`,
+          sender: 'assistant',
+          text: resp.text,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          sources: resp.sources,
+          suggestedFollowups: resp.followups
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setIsTyping(false);
+      }
+    });
   };
 
   const handleSpeak = (id: string, text: string) => {
