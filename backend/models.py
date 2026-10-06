@@ -60,6 +60,7 @@ class ChatMessageRequest(BaseModel):
     language: str = "en" # en, mr, hi
     patient_id: str = "patient-aai-101"
     context: Optional[Dict[str, Any]] = None
+    history: Optional[List[Dict[str, str]]] = None
 
 class ChatMessageResponse(BaseModel):
     reply: str

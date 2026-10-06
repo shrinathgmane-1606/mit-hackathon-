@@ -4,8 +4,6 @@ Personalized Baseline Modeling and Multi-Variate Compound Anomaly Detection
 for Elderly Diabetes Companionship.
 """
 
-#gekki giw are yoiu
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
 import math
@@ -171,7 +169,7 @@ if __name__ == "__main__":
     # Test execution
     aai_baseline = PersonalBaseline(
         patient_id="aai-01",
-        patient_name="Mrs. Anusuya Deshmukh",
+        patient_name="Senior Patient",
         age=72,
         diabetes_type="Type 2",
         fasting_min=105, fasting_max=135, fasting_avg=118,

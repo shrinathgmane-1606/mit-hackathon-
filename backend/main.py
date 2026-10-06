@@ -124,13 +124,13 @@ def get_time_in_range_analytics():
     }
 
 @app.get("/api/doctor/report")
-def get_doctor_visit_report():
+def get_doctor_visit_report(patient_name: str = "Senior Patient"):
     """
     Compiles a structured 14-day clinical visit summary for endocrinologists.
     """
     return {
         "patient": {
-            "name": "Anusuya Deshmukh",
+            "name": patient_name,
             "age": 72,
             "type": "Type 2 Diabetes (8 Years)",
             "baseline_weight_kg": 64.5
